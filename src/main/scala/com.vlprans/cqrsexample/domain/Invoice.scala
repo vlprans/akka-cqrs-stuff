@@ -5,8 +5,7 @@ import scalaz._, Scalaz._
 import lib._
 
 
-sealed abstract class Invoice {
-  def id: String
+sealed abstract class Invoice extends AggregateRoot[Invoice.Id] {
   def version: Long
   def items: List[InvoiceItem]
   def discount: BigDecimal
@@ -18,8 +17,15 @@ sealed abstract class Invoice {
   }
 }
 
+object Invoice {
+  sealed trait InvoiceIdTag
+
+  type Id = String @@ InvoiceIdTag
+  def Id(id: String) = Tag[String, InvoiceIdTag](id)
+}
+
 case class DraftInvoice(
-  id: String,
+  id: Invoice.Id,
   version: Long = -1,
   items: List[InvoiceItem] = Nil,
   discount: BigDecimal = 0) extends Invoice {
@@ -37,7 +43,7 @@ case class DraftInvoice(
 }
 
 case class SentInvoice(
-  id: String,
+  id: Invoice.Id,
   version: Long = -1,
   items: List[InvoiceItem] = Nil,
   discount: BigDecimal = 0,
@@ -49,7 +55,7 @@ case class SentInvoice(
 }
 
 case class PaidInvoice(
-  id: String,
+  id: Invoice.Id,
   version: Long = -1,
   items: List[InvoiceItem] = Nil,
   discount: BigDecimal = 0,
@@ -68,17 +74,17 @@ case class InvoiceAddress(name: String, street: String, city: String, country: S
 
 
 // Events
-case class InvoiceCreated(invoiceId: String) extends Event
-case class InvoiceItemAdded(invoiceId: String, item: InvoiceItem) extends Event
-case class InvoiceDiscountSet(invoiceId: String, discount: BigDecimal)
-case class InvoiceSent(invoiceId: String, invoice: Invoice, to: InvoiceAddress)
-case class InvoicePaid(invoiceId: String)
+case class InvoiceCreated(invoiceId: Invoice.Id) extends Event
+case class InvoiceItemAdded(invoiceId: Invoice.Id, item: InvoiceItem) extends Event
+case class InvoiceDiscountSet(invoiceId: Invoice.Id, discount: BigDecimal)
+case class InvoiceSent(invoiceId: Invoice.Id, invoice: Invoice, to: InvoiceAddress)
+case class InvoicePaid(invoiceId: Invoice.Id)
 
-case class InvoicePaymentRequested(invoiceId: String, amount: BigDecimal, to: InvoiceAddress)
-case class InvoicePaymentReceived(invoiceId: String, amount: BigDecimal)
+case class InvoicePaymentRequested(invoiceId: Invoice.Id, amount: BigDecimal, to: InvoiceAddress)
+case class InvoicePaymentReceived(invoiceId: Invoice.Id, amount: BigDecimal)
 
 // Commands
-case class CreateInvoice(invoiceId: String) extends Command
-case class AddInvoiceItem(invoiceId: String, expectedVersion: Option[Long], invoiceItem: InvoiceItem)
-case class SetInvoiceDiscount(invoiceId: String, expectedVersion: Option[Long], discount: BigDecimal)
-case class SendInvoiceTo(invoiceId: String, expectedVersion: Option[Long], to: InvoiceAddress)
+case class CreateInvoice(invoiceId: Invoice.Id) extends Command
+case class AddInvoiceItem(invoiceId: Invoice.Id, expectedVersion: Option[Long], invoiceItem: InvoiceItem)
+case class SetInvoiceDiscount(invoiceId: Invoice.Id, expectedVersion: Option[Long], discount: BigDecimal)
+case class SendInvoiceTo(invoiceId: Invoice.Id, expectedVersion: Option[Long], to: InvoiceAddress)
