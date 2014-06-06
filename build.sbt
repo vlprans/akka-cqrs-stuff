@@ -4,10 +4,11 @@ name := "cqrsexample"
 
 version := "0.0.1"
 
-scalaVersion := "2.11.0"
+scalaVersion := "2.11.1"
 
 resolvers ++= Seq(
-  "spray repo" at "http://repo.spray.io"
+  "spray repo" at "http://repo.spray.io",
+  "SpinGo OSS Releases" at "http://spingo-oss.s3.amazonaws.com/repository/releases"
 )
 
 libraryDependencies ++= Dependencies.backend
