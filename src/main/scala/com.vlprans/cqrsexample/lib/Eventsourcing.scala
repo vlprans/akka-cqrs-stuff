@@ -23,11 +23,14 @@ trait ESProcessorDSL {
     def value: DomainError \/ Value = ep.run.value
   }
 
+  // TODO:
+  // def take[Value](x: DomainValidation[Value]): EventProducer[Value]
+
   def accept[Value](x: Value): EventProducer[Value] =
-    EitherT.right(x.set(Nil) : EventSeqWriter[Value])
+    EitherT.right(x.point[EventSeqWriter])
 
   def reject[Value](error: DomainError): EventProducer[Value] =
-    EitherT.left(error.set(Nil) : EventSeqWriter[DomainError])
+    EitherT.left(error.point[EventSeqWriter])
 
   def reject[Value](errMsg: String): EventProducer[Value] =
     reject(DomainError(errMsg))
@@ -36,14 +39,14 @@ object ESProcessorDSL extends ESProcessorDSL
 
 
 trait ESCommandProcessor extends ESProcessorDSL {
-  type CmdHandlerPF = PartialFunction[Command, EventProducer[_]]
+  type CmdHandler = PartialFunction[Command, EventProducer[_]]
 
-  def commandHandler: CmdHandlerPF
-  def unknownCmdHandler: CmdHandlerPF = {
+  def commandHandler: CmdHandler
+  def unknownCmdHandler: CmdHandler = {
     case cmd => reject(s"Unknown command $cmd")
   }
 
-  def handleCommandPF: CmdHandlerPF = commandHandler orElse unknownCmdHandler
+  def handleCommandPF: CmdHandler = commandHandler orElse unknownCmdHandler
 }
 
 trait ESEventProcessor extends ESProcessorDSL {
