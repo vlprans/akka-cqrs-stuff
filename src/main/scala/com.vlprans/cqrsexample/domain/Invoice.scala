@@ -88,6 +88,6 @@ case class InvoicePaymentReceived(invoiceId: Invoice.Id, amount: BigDecimal)
 
 // Commands
 case class CreateInvoice(invoiceId: Invoice.Id) extends Command
-case class AddInvoiceItem(invoiceId: Invoice.Id, expectedVersion: Option[Long], invoiceItem: InvoiceItem)
-case class SetInvoiceDiscount(invoiceId: Invoice.Id, expectedVersion: Option[Long], discount: BigDecimal)
-case class SendInvoiceTo(invoiceId: Invoice.Id, expectedVersion: Option[Long], to: InvoiceAddress)
+case class AddInvoiceItem(invoiceId: Invoice.Id, expectedVersion: Option[Long], invoiceItem: InvoiceItem) extends Command
+case class SetInvoiceDiscount(invoiceId: Invoice.Id, expectedVersion: Option[Long], discount: BigDecimal) extends Command
+case class SendInvoiceTo(invoiceId: Invoice.Id, expectedVersion: Option[Long], to: InvoiceAddress) extends Command
