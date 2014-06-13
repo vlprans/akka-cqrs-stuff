@@ -23,8 +23,10 @@ trait ESProcessorDSL {
     def value: DomainError \/ Value = ep.run.value
   }
 
-  // TODO:
-  // def take[Value](x: DomainValidation[Value]): EventProducer[Value]
+  def take[Value](x: DomainValidation[Value]): EventProducer[Value] = x match {
+    case \/-(x) => accept(x)
+    case -\/(err) => reject(err)
+  }
 
   def accept[Value](x: Value): EventProducer[Value] =
     EitherT.right(x.point[EventSeqWriter])

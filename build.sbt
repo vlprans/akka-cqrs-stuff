@@ -37,6 +37,6 @@ initialCommands in console := """
   import akka.util.Timeout
   import scala.concurrent.{Future, Await}
   import scala.concurrent.duration._
-  val system = ActorSystem("cqrs-example", config)
+  val system = ActorSystem("cqrs-example")
   implicit val timeout = Timeout(5 seconds)
 """

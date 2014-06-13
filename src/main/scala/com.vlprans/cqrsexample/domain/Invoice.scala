@@ -22,6 +22,9 @@ object Invoice {
 
   type Id = String @@ InvoiceIdTag
   def Id(id: String) = Tag[String, InvoiceIdTag](id)
+
+  def create(id: Invoice.Id): DomainValidation[DraftInvoice] =
+    DraftInvoice(id, version = 0L).right
 }
 
 case class DraftInvoice(
