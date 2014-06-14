@@ -23,6 +23,8 @@ trait ESProcessorDSL {
     def value: DomainError \/ Value = ep.run.value
   }
 
+  def eventProducer[A, B](f: A => EventProducer[B]) = Kleisli[EventProducer, A, B](f)
+
   def take[Value](x: DomainValidation[Value]): EventProducer[Value] = x match {
     case \/-(x) => accept(x)
     case -\/(err) => reject(err)

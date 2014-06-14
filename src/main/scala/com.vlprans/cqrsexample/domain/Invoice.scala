@@ -17,45 +17,25 @@ sealed abstract class Invoice extends AggregateRoot[Invoice.Id] {
   }
 }
 
-object Invoice {
+object Invoice extends InvoiceActions {
   sealed trait InvoiceIdTag
 
   type Id = String @@ InvoiceIdTag
   def Id(id: String) = Tag[String, InvoiceIdTag](id)
-
-  def create(id: Invoice.Id): DomainValidation[DraftInvoice] =
-    DraftInvoice(id, version = 0L).right
 }
 
 case class DraftInvoice(
   id: Invoice.Id,
   version: Long = -1,
   items: List[InvoiceItem] = Nil,
-  discount: BigDecimal = 0) extends Invoice {
-
-  def addItem(item: InvoiceItem): DomainValidation[DraftInvoice] =
-    copy(version = version + 1, items = items :+ item).right
-
-  def setDiscount(discount: BigDecimal): DomainValidation[DraftInvoice] =
-    if (sum <= 100) DomainError("discount only on orders with sum > 100").left
-    else copy(version = version + 1, discount = discount).right
-
-  def sendTo(address: InvoiceAddress): DomainValidation[SentInvoice] =
-    if (items.isEmpty) DomainError("cannot send empty invoice").left
-    else SentInvoice(id, version + 1, items, discount, address).right
-}
+  discount: BigDecimal = 0) extends Invoice
 
 case class SentInvoice(
   id: Invoice.Id,
   version: Long = -1,
   items: List[InvoiceItem] = Nil,
   discount: BigDecimal = 0,
-  address: InvoiceAddress) extends Invoice {
-
-  def pay(amount: BigDecimal): DomainValidation[PaidInvoice] =
-    if (amount < total) DomainError("paid amount less than total amount").left
-    else                PaidInvoice(id, version + 1, items, discount, address).right
-}
+  address: InvoiceAddress) extends Invoice
 
 case class PaidInvoice(
   id: Invoice.Id,
@@ -63,7 +43,6 @@ case class PaidInvoice(
   items: List[InvoiceItem] = Nil,
   discount: BigDecimal = 0,
   address: InvoiceAddress) extends Invoice
-
 
 case class InvoiceItem(description: String, count: Int, amount: BigDecimal)
 
@@ -75,6 +54,29 @@ case class InvoiceItemVersioned(
 
 case class InvoiceAddress(name: String, street: String, city: String, country: String)
 
+
+trait InvoiceActions extends ESProcessorDSL {
+  def create(id: Invoice.Id) = accept(DraftInvoice(id, version = 0L))
+
+  def addItem(item: InvoiceItem) = eventProducer[DraftInvoice, DraftInvoice] { invoice =>
+    accept(invoice.copy(version = invoice.version + 1, items = invoice.items :+ item))
+  }
+
+  def setDiscount(discount: BigDecimal) = eventProducer[DraftInvoice, DraftInvoice] { invoice =>
+    if (invoice.sum <= 100) reject("discount only on orders with sum > 100")
+    else accept(invoice.copy(version = invoice.version + 1, discount = discount))
+  }
+
+  def sendTo(address: InvoiceAddress) = eventProducer[DraftInvoice, SentInvoice] { invoice =>
+    if (invoice.items.isEmpty) reject("cannot send empty invoice")
+    else accept(SentInvoice(invoice.id, invoice.version + 1, invoice.items, invoice.discount, address))
+  }
+
+  def pay(amount: BigDecimal) = eventProducer[SentInvoice, PaidInvoice] { invoice =>
+    if (amount < invoice.total) reject("paid amount less than total amount")
+    else accept(PaidInvoice(invoice.id, invoice.version + 1, invoice.items, invoice.discount, invoice.address))
+  }
+}
 
 // Events
 case class InvoiceCreated(invoiceId: Invoice.Id) extends Event

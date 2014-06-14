@@ -16,24 +16,24 @@ trait InvoiceCmdProcessor extends ESCommandProcessor with InvoiceRepo {
   override val commandHandler: CmdHandler = {
     case CreateInvoice(invoiceId) => invoicesRepo.getOpt(invoiceId) match {
       case Some(_) => reject(s"${invoiceId} already exists")
-      case None => take(Invoice.create(invoiceId)) producing InvoiceCreated(invoiceId)
+      case None => Invoice.create(invoiceId) producing InvoiceCreated(invoiceId)
     }
 
     case AddInvoiceItem(invoiceId, expectedVersion, item) =>
-      (invoicesRepo.get(invoiceId) >>=
-        onlyDraft(expectedVersion)) producing InvoiceItemAdded(invoiceId, item)
+      onlyDraft(expectedVersion) =<< invoicesRepo.get(invoiceId) producing InvoiceItemAdded(invoiceId, item)
   }
 
-  def onlyDraft[A <: Invoice](expectedVersion: Option[Long])(invoice: A): EventProducer[Invoice] = invoice match {
+  def onlyDraft(expectedVersion: Option[Long]) = eventProducer[Invoice, Invoice] {
     case i: DraftInvoice => accept(i) >>= requireVersion(expectedVersion)
     case i => reject(notDraftError(i.id))
   }
 
-  def requireVersion[A <: Invoice](expectedVersion: Option[Long])(invoice: A): EventProducer[Invoice] = expectedVersion match {
-    case Some(exp) if (invoice.version != exp) => reject(invalidVersion(invoice.id, exp, invoice.version))
-    case Some(exp) if (invoice.version == exp) => accept(invoice)
-    case None => accept(invoice)
-  }
+  def requireVersion(expectedVersion: Option[Long]) = eventProducer[Invoice, Invoice] { invoice =>
+    expectedVersion match {
+      case Some(exp) if (invoice.version != exp) => reject(invalidVersion(invoice.id, exp, invoice.version))
+      case Some(exp) if (invoice.version == exp) => accept(invoice)
+      case None => accept(invoice)
+    }}
 }
 
 trait InvoiceEventProcessor extends ESEventProcessor with InvoiceRepo {
