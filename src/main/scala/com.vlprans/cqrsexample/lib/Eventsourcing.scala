@@ -12,6 +12,7 @@ trait ESProcessorDSL {
   type EventSeq = List[Event]
   type EventSeqWriter[Value] = Writer[EventSeq, Value]
   type EventProducer[Value] = EitherT[EventSeqWriter, DomainError, Value]
+  //type EventProcessor[Value]
 
   implicit class EventProducerOps[Value](ep: EventProducer[Value]) {
     def producing[E <: Event](f: Value => E) =
@@ -24,11 +25,6 @@ trait ESProcessorDSL {
   }
 
   def eventProducer[A, B](f: A => EventProducer[B]) = Kleisli[EventProducer, A, B](f)
-
-  def take[Value](x: DomainValidation[Value]): EventProducer[Value] = x match {
-    case \/-(x) => accept(x)
-    case -\/(err) => reject(err)
-  }
 
   def accept[Value](x: Value): EventProducer[Value] =
     EitherT.right(x.point[EventSeqWriter])
@@ -54,7 +50,7 @@ trait ESCommandProcessor extends ESProcessorDSL {
 }
 
 trait ESEventProcessor extends ESProcessorDSL {
-  type EventHandler = PartialFunction[Event, DomainValidation[Any]]
+  type EventHandler = PartialFunction[Event, ValidationStatus[Any]]
 
   def eventHandler: EventHandler
   def unknownEventHandler: EventHandler = {
