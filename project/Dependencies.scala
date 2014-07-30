@@ -2,7 +2,7 @@ import sbt._
 
 
 object Library {
-  val akkaVersion = "2.3.3"
+  val akkaVersion = "2.3.4"
   val sprayVersion = "1.3.1-spingo.1"
   val scalazVersion = "7.1.0-M7"
 

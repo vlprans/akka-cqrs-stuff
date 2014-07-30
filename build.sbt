@@ -4,7 +4,7 @@ name := "cqrsexample"
 
 version := "0.0.1"
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.11.2"
 
 resolvers ++= Seq(
   "spray repo" at "http://repo.spray.io",
@@ -37,6 +37,8 @@ initialCommands in console := """
   import akka.util.Timeout
   import scala.concurrent.{Future, Await}
   import scala.concurrent.duration._
+  import com.vlprans.cqrsexample._
+  import akka.persistence._
   val system = ActorSystem("cqrs-example")
   implicit val timeout = Timeout(5 seconds)
 """
